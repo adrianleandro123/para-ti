@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Para mi cachetona 💖</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #050505;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+canvas {
+    width: 100%;
+    max-width: 700px;
+    height: auto;
+    position: relative;
+    z-index: 1;
+}
+
+/* Fotos que aparecen y desaparecen alrededor del corazón */
+.foto {
+    position: fixed;
+    width: clamp(90px, 18vw, 180px);
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 18px;
+    border: 3px solid #ff8fc8;
+    box-shadow: 0 0 20px #ff4fa3, 0 0 40px rgba(255, 79, 163, 0.5);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6) rotate(var(--rot, 0deg));
+    transition: opacity 1.2s ease, transform 1.2s ease;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.foto.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(var(--rot, 0deg));
+}
+
+/* Pantalla de inicio (necesaria para que el navegador deje reproducir la canción) */
+#inicio {
+    position: fixed;
+    inset: 0;
+    background: #050505;
+    color: #ffb3d9;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+    font-family: Arial, sans-serif;
+    font-size: 22px;
+    text-align: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: opacity 0.8s ease;
+    text-shadow: 0 0 12px #ff4fa3;
+}
+
+#inicio .latido {
+    font-size: 70px;
+    animation: latir 1s infinite;
+}
+
+@keyframes latir {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+#inicio.oculto {
+    opacity: 0;
+    pointer-events: none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="inicio">
+    <div class="latido">💖</div>
+    <div>Toca la pantalla para comenzar</div>
+</div>
+
+<canvas id="heart"></canvas>
+
+<!-- CANCIÓN: pon tu archivo de música en la misma carpeta con el nombre cancion.mp3 -->
+<audio id="musica" src="chica ideal.mpeg" loop preload="auto"></audio>
+
+<script>
+
+/* =========================================================
+   CONFIGURACIÓN
+   ========================================================= */
+
+// Pon aquí los nombres de tus fotos (en la misma carpeta que este archivo).
+// Puedes agregar todas las que quieras.
+const FOTOS = [
+    "imagen1.jpeg",
+    "imagen2.jpeg",
+    "imagen3.jpeg",
+    "imagen4.jpeg",
+    "imagen5.jpeg",
+    "imagen6.jpeg",
+    "imagen7.jpeg",
+    "imagen8.jpeg",
+    "imagen9.jpeg",
+    "imagen10.jpeg",
+    "imagen11.jpeg",
+    "imagen12.jpeg",
+    "imagen13.jpeg",
+    "imagen14.jpeg",
+    "imagen15.jpeg",
+    "imagen16.jpeg",
+    "imagen17.jpeg",
+];
+
+const TIEMPO_ENTRE_FOTOS = 2200;   // cada cuántos ms aparece una foto nueva
+const TIEMPO_VISIBLE     = 5000;   // cuánto tiempo se queda visible cada foto
+
+// Posiciones (en % de la pantalla) alrededor del corazón: [izquierda, arriba]
+const POSICIONES = [
+    [10, 20], [22, 52], [10, 82],
+    [90, 20], [78, 52], [90, 82],
+    [50, 9],  [50, 91]
+];
+
+/* =========================================================
+   CORAZÓN
+   ========================================================= */
+
+const canvas = document.getElementById("heart");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 700;
+canvas.height = 700;
+
+const cx = 350;
+const cy = 350;
+
+const SCALE = 10;
+const K = 2.1;
+const N = 140;
+
+function heart(t) {
+
+    let x = 16 * Math.pow(Math.sin(t), 3);
+
+    let y = 13 * Math.cos(t)
+          - 5 * Math.cos(2*t)
+          - 2 * Math.cos(3*t)
+          - Math.cos(4*t);
+
+    return {x, y};
+}
+
+function drawHeart(time) {
+
+    ctx.clearRect(0, 0, 700, 700);
+
+    ctx.fillStyle = "#050505";
+    ctx.fillRect(0, 0, 700, 700);
+
+    // Efecto de latido
+    let pulse = 1 + 0.035 * Math.sin(time * 0.003);
+
+    // Rayos luminosos ROSADOS
+    for (let i = 0; i < N; i++) {
+
+        let angle = 2 * Math.PI * i / N;
+
+        let p = heart(angle);
+
+        let hx = p.x * SCALE * pulse;
+        let hy = p.y * SCALE * pulse;
+
+        let ex = hx * K;
+        let ey = hy * K;
+
+        let x1 = cx + hx;
+        let y1 = cy - hy;
+
+        let x2 = cx + ex;
+        let y2 = cy - ey;
+
+        let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+
+        gradient.addColorStop(0,    "rgba(255,105,180,1)");
+        gradient.addColorStop(0.25, "rgba(255,70,160,0.8)");
+        gradient.addColorStop(0.65, "rgba(200,40,130,0.4)");
+        gradient.addColorStop(1,    "rgba(120,10,70,0)");
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 1.5;
+
+        ctx.shadowColor = "#ff4fa3";
+        ctx.shadowBlur = 5;
+
+        ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+
+    // Silueta negra del corazón
+    ctx.beginPath();
+
+    for (let i = 0; i <= 1000; i++) {
+
+        let t = 2 * Math.PI * i / 1000;
+        let p = heart(t);
+
+        let x = cx + p.x * SCALE * pulse;
+        let y = cy - p.y * SCALE * pulse;
+
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+
+    ctx.closePath();
+    ctx.fillStyle = "#000000";
+    ctx.fill();
+
+    // Borde rosado suave del corazón
+    ctx.strokeStyle = "rgba(255,105,180,0.9)";
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "#ff4fa3";
+    ctx.shadowBlur = 15;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // MENSAJE EN EL CENTRO
+    ctx.save();
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "#ff8fc8";
+    ctx.shadowBlur = 12;
+
+    const lines = [
+        "ERES UNA CHICA",
+        "HERMOSA Y MARAVILLOSA,",
+        "ERES MI CHICA IDEAL,",
+        "ERES DEMASIADO INCREÍBLE,",
+        "Y TE AMO DEMASIADO 💖"
+    ];
+
+    const fontSize = 16;
+
+    ctx.font = `bold ${fontSize}px Arial`;
+
+    const lineHeight = 25;
+    const startY = cy - (lines.length - 1) * lineHeight / 2;
+
+    lines.forEach((line, index) => {
+        ctx.fillText(line, cx, startY + index * lineHeight);
+    });
+
+    ctx.restore();
+}
+
+function animate(time) {
+    drawHeart(time);
+    requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+
+/* =========================================================
+   FOTOS QUE APARECEN Y DESAPARECEN
+   ========================================================= */
+
+const fotosCargadas = [];
+const posicionesOcupadas = new Set();
+let indiceFoto = 0;
+
+// Solo se usan las fotos que realmente existen
+FOTOS.forEach(src => {
+    const img = new Image();
+    img.onload = () => fotosCargadas.push(src);
+    img.src = src;
+});
+
+function mostrarFoto() {
+
+    if (fotosCargadas.length === 0) return;
+
+    const libres = POSICIONES
+        .map((_, i) => i)
+        .filter(i => !posicionesOcupadas.has(i));
+
+    if (libres.length === 0) return;
+
+    const pos = libres[Math.floor(Math.random() * libres.length)];
+    posicionesOcupadas.add(pos);
+
+    const src = fotosCargadas[indiceFoto % fotosCargadas.length];
+    indiceFoto++;
+
+    const img = document.createElement("img");
+    img.src = src;
+    img.className = "foto";
+    img.style.left = POSICIONES[pos][0] + "%";
+    img.style.top  = POSICIONES[pos][1] + "%";
+    img.style.setProperty("--rot", (Math.random() * 14 - 7) + "deg");
+
+    document.body.appendChild(img);
+
+    // Aparece
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => img.classList.add("visible"));
+    });
+
+    // Desaparece
+    setTimeout(() => {
+        img.classList.remove("visible");
+
+        setTimeout(() => {
+            img.remove();
+            posicionesOcupadas.delete(pos);
+        }, 1300);
+
+    }, TIEMPO_VISIBLE);
+}
+
+setInterval(mostrarFoto, TIEMPO_ENTRE_FOTOS);
+
+/* =========================================================
+   CANCIÓN
+   ========================================================= */
+
+const musica = document.getElementById("musica");
+const inicio = document.getElementById("inicio");
+
+inicio.addEventListener("click", () => {
+    musica.volume = 0.8;
+    musica.play().catch(() => {});
+    inicio.classList.add("oculto");
+    mostrarFoto();
+});
+
+</script>
+
+</body>
+</html>
